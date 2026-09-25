@@ -1,1 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NDA Preparation Exercise</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#07110d;color:#eef7f1}
+.wrap{max-width:760px;margin:auto;padding:18px}.card{background:#102019;border:1px solid #294336;border-radius:18px;padding:22px;margin:14px 0;box-shadow:0 8px 25px #0005}
+h1{margin:0 0 8px;font-size:28px}.muted{color:#a9bdb1}.btn{width:100%;padding:14px;border:0;border-radius:12px;background:#d9f99d;color:#07110d;font-weight:800;font-size:16px;margin-top:10px}.btn.alt{background:#24382e;color:#eef7f1;border:1px solid #3c5949}
+input,select{width:100%;padding:13px;margin:7px 0;border-radius:10px;border:1px solid #3b5748;background:#08140f;color:white;font-size:16px}
+.hidden{display:none}.q{padding:15px;background:#0a1711;border-radius:14px;margin:12px 0}.q b{display:block;margin-bottom:10px}.opt{display:block;padding:8px}.top{position:sticky;top:0;background:#07110df2;padding:10px 0;z-index:3}.pill{display:inline-block;padding:6px 10px;border-radius:99px;background:#1e3328;margin:3px;font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:9px;border-bottom:1px solid #294336;text-align:left;font-size:13px}.scroll{overflow:auto}
+.good{color:#b8f28b}.bad{color:#ff9f9f}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="home" class="card">
+    <h1>🎓 NDA Preparation Exercise</h1>
+    <p class="muted">Physics & Mathematics CBT • One-link portal</p>
+    <button class="btn" onclick="show('student')">Student Login</button>
+    <button class="btn alt" onclick="show('admin')">Administrator Login</button>
+    <p class="muted" style="font-size:12px;margin-top:14px">Students submit results to the central server when connected to the CBT network.</p>
+  </div>
 
+  <div id="student" class="card hidden">
+    <h2>Student Login</h2>
+    <input id="sname" placeholder="Full name">
+    <input id="sclass" placeholder="Class / Group">
+    <button class="btn" onclick="startExam()">Start CBT</button>
+    <button class="btn alt" onclick="show('home')">Back</button>
+  </div>
+
+  <div id="admin" class="card hidden">
+    <h2>Administrator Login</h2>
+    <input id="anumber" placeholder="Authorized phone number">
+    <input id="apin" type="password" placeholder="Admin PIN">
+    <button class="btn" onclick="adminLogin()">Open Dashboard</button>
+    <button class="btn alt" onclick="show('home')">Back</button>
+    <p class="muted" style="font-size:12px">Authorized numbers: 08182379070, 09078289851, 09162203949</p>
+  </div>
+
+  <div id="exam" class="hidden">
+    <div class="top"><span class="pill" id="studentBadge"></span><span class="pill" id="count"></span></div>
+    <form id="examForm" class="card"></form>
+    <button class="btn" onclick="submitExam()">Submit CBT</button>
+  </div>
+
+  <div id="result" class="card hidden"></div>
+
+  <div id="dash" class="hidden">
+    <div class="card">
+      <h2>Administrator Dashboard</h2>
+      <button class="btn alt" onclick="loadResults()">↻ Refresh Results</button>
+      <button class="btn alt" onclick="exportCSV()">Export CSV</button>
+      <button class="btn alt" onclick="clearResults()">Clear All Results</button>
+      <button class="btn alt" onclick="show('home')">Logout</button>
+    </div>
+    <div class="card">
+      <div id="stats"></div>
+      <input id="search" placeholder="Search member name or class/group" oninput="renderResults()">
+      <div class="scroll"><table><thead><tr><th>Name</th><th>Group</th><th>Score</th><th>%</th><th>Time</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div>
+  </div>
+</div>
+<script>
+const ADMINS=["08182379070","09078289851","09162203949"], PIN="NDA2026";
+const qs=[
+["Physics","A force of 10 N acts on a 2 kg mass. What is the acceleration?","5 m/s²","20 m/s²","0.2 m/s²","8 m/s²","A"],
+["Physics","Which is a scalar quantity?","Velocity","Force","Mass","Acceleration","C"],
+["Physics","A car travels 20 m in 4 s. Its speed is:","4 m/s","5 m/s","8 m/s","80 m/s","B"],
+["Physics","The SI unit of work is:","Watt","Newton","Joule","Pascal","C"],
+["Physics","A satellite remains in orbit mainly because of:","Friction","Gravity","Sound","Magnetism","B"],
+["Physics","Power is defined as:","Force × distance","Work ÷ time","Mass × acceleration","Energy × distance","B"],
+["Physics","Pressure is:","Force ÷ area","Area ÷ force","Force × area","Mass ÷ volume","A"],
+["Physics","Heat transfer through direct contact in solids is:","Convection","Radiation","Conduction","Evaporation","C"],
+["Physics","The SI unit of frequency is:","Metre","Hertz","Joule","Volt","B"],
+["Physics","A wave has frequency 5 Hz and wavelength 2 m. Its speed is:","2.5 m/s","7 m/s","10 m/s","25 m/s","C"],
+["Physics","Sound cannot travel through:","Air","Water","Steel","Vacuum","D"],
+["Physics","The angle of incidence is equal to the angle of:","Refraction","Reflection","Deviation","Dispersion","B"],
+["Physics","When light travels from air into glass, its speed generally:","Increases","Decreases","Becomes zero","Stays exactly the same","B"],
+["Physics","A capacitor stores:","Electric charge","Mass","Heat only","Sound","A"],
+["Physics","Ohm's law is represented by:","V = IR","P = IV²","F = ma²","Q = It²","A"],
+["Physics","Two resistors of 2 Ω and 3 Ω are connected in series. Total resistance is:","1 Ω","5 Ω","6 Ω","2/3 Ω","B"],
+["Physics","A transformer works using:","Electromagnetic induction","Chemical reaction","Gravity","Conduction only","A"],
+["Physics","An electron has:","Positive charge","Negative charge","No charge","Both positive and negative charge","B"],
+["Physics","A radioactive material has a half-life of 2 hours. After 4 hours, the fraction remaining is:","1/2","1/3","1/4","1/8","C"],
+["Physics","An electric motor converts:","Electrical energy to mechanical energy","Mechanical energy to electrical energy","Heat to mass","Sound to light","A"],
+["Mathematics","15% of 200 is:","15","20","30","40","C"],
+["Mathematics","2³ × 2² equals:","16","32","64","8","B"],
+["Mathematics","Solve 3x + 5 = 20.","3","5","7","15","B"],
+["Mathematics","The common difference of 2, 5, 8, 11 is:","2","3","4","5","B"],
+["Mathematics","log₁₀(1000) is:","2","3","10","100","B"],
+["Mathematics","√50 simplifies to:","5√2","2√5","10√5","25√2","A"],
+["Mathematics","If y = 2x + 3, find y when x = 4.","8","10","11","12","C"],
+["Mathematics","The gradient of y = 3x − 2 is:","−2","2","3","5","C"],
+["Mathematics","The midpoint of (2,4) and (6,8) is:","(3,5)","(4,6)","(5,7)","(8,12)","B"],
+["Mathematics","sin 30° equals:","0","1/2","√2/2","1","B"],
+["Mathematics","If f(x)=x², then f'(x) is:","x","2x","x²","2","B"],
+["Mathematics","∫2x dx equals:","2x²+C","x²+C","x+C","2+C","B"],
+["Mathematics","The determinant of [[2,1],[3,4]] is:","5","8","11","−5","A"],
+["Mathematics","The probability of getting a head when a fair coin is tossed is:","0","1/4","1/2","1","C"],
+["Mathematics","The number of arrangements of 3 different books is:","3","6","9","12","B"],
+["Mathematics","A geometric progression starts 2, 6, 18. The next term is:","36","54","72","108","B"],
+["Mathematics","The mean of 4, 6, 8, 10 is:","6","7","8","9","B"],
+["Mathematics","The sum of angles in a triangle is:","90°","180°","270°","360°","B"],
+["Mathematics","The area of a triangle with base 10 cm and height 6 cm is:","16 cm²","30 cm²","60 cm²","120 cm²","B"],
+["Mathematics","If 3:5 = x:20, x is:","8","10","12","15","C"]
+];
+let current=[], answers={}, studentName="", studentClass="", allResults=[];
+
+function show(id){["home","student","admin","exam","result","dash"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden");}
+function startExam(){
+ studentName=document.getElementById("sname").value.trim(); studentClass=document.getElementById("sclass").value.trim();
+ if(!studentName||!studentClass){alert("Enter your full name and class/group.");return;}
+ current=qs; answers={}; document.getElementById("studentBadge").textContent=studentName; document.getElementById("count").textContent="40 Questions";
+ let f=document.getElementById("examForm"); f.innerHTML="";
+ current.forEach((q,i)=>{let d=document.createElement("div");d.className="q";d.innerHTML=`<b>${i+1}. [${q[0]}] ${q[1]}</b>`+q.slice(2,6).map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${"ABCD"[j]}"> ${"ABCD"[j]}. ${o}</label>`).join("");f.appendChild(d);});
+ show("exam"); window.scrollTo(0,0);
+}
+async function submitExam(){
+ let score=0; current.forEach((q,i)=>{let el=document.querySelector(`input[name=q${i}]:checked`);answers[i]=el?el.value:"";if(answers[i]===q[6])score++;});
+ let data={name:studentName,class_group:studentClass,score,total:40,percentage:Math.round(score/40*100),submitted_at:new Date().toISOString(),answers};
+ try{let r=await fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});if(!r.ok)throw 0;data.saved=true}catch(e){let pending=JSON.parse(localStorage.getItem("pendingResults")||"[]");pending.push(data);localStorage.setItem("pendingResults",JSON.stringify(pending));data.saved=false;}
+ document.getElementById("result").innerHTML=`<h2>CBT Submitted</h2><p><b>${studentName}</b></p><h1>${score}/40</h1><p>${data.percentage}%</p><p class="${data.saved?"good":"bad"}">${data.saved?"✓ Result saved to the central server.":"⚠ Server not reached. Result is saved on this phone and can be resubmitted when the server is available."}</p><button class="btn" onclick="show('home')">Finish</button>`;
+ show("result");
+}
+async function adminLogin(){
+ let n=document.getElementById("anumber").value.replace(/\D/g,""), p=document.getElementById("apin").value;
+ if(!ADMINS.includes(n)||p!==PIN){alert("Invalid administrator details.");return;}
+ show("dash"); await loadResults();
+}
+async function loadResults(){
+ try{let r=await fetch("/api/results");allResults=await r.json();renderResults()}catch(e){allResults=[];renderResults();alert("Cannot reach the central server.");}
+}
+function renderResults(){
+ let term=(document.getElementById("search")?.value||"").toLowerCase();
+ let a=allResults.filter(x=>(x.name+" "+x.class_group).toLowerCase().includes(term));
+ let avg=a.length?Math.round(a.reduce((s,x)=>s+x.percentage,0)/a.length):0;
+ document.getElementById("stats").innerHTML=`<span class="pill">Members: ${a.length}</span><span class="pill">Average: ${avg}%</span>`;
+ document.getElementById("rows").innerHTML=a.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.class_group)}</td><td>${x.score}/${x.total}</td><td>${x.percentage}%</td><td>${new Date(x.submitted_at).toLocaleString()}</td></tr>`).join("");
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function exportCSV(){let csv="Name,Class/Group,Score,Total,Percentage,Submitted At\n"+allResults.map(x=>[x.name,x.class_group,x.score,x.total,x.percentage,new Date(x.submitted_at).toLocaleString()].map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="NDA_CBT_Results.csv";a.click();}
+async function clearResults(){if(!confirm("Clear ALL results?"))return;await fetch("/api/clear",{method:"POST"});loadResults();}
+</script>
+</body></html>
